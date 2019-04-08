@@ -26,11 +26,14 @@ def find_issues_links():
 
 def parse_estimations(estimations):
   developer_estimation = [estimation for estimation in estimations if estimation.startswith('Role: Developer')]
-  if len(developer_estimation) > 0:
+  if len(developer_estimation) > 0 and developer_estimation[0].split('(')[1].isdigit():
     return int(developer_estimation[0].split('(')[1]) / 3600
 
-  generic_estimation = [estimation for estimation in estimations if estimation.startswith('Role: -1')][0]
-  return int(generic_estimation.split('(')[1]) / 3600
+  generic_estimation = [estimation for estimation in estimations if estimation.startswith('Role: -1')]
+  if len(generic_estimation) > 0:
+    return int(generic_estimation[0].split('(')[1]) / 3600
+
+  return 0
 
 def is_in_date_range(date):
   end_date_plus_one = (dateutil.parser.parse(end_date) + timedelta(days=1)).isoformat()
@@ -75,19 +78,33 @@ print('Report {} {} - {}'.format(name, start_date, end_date))
 
 issues = find_issues_links()
 
+
 parsed_issues = [parse_issue(issue) for issue in issues if issue['key'] != 'KID-1']
-total_work = sum([issue['logged'] for issue in parsed_issues])
+refinement_issues = [issue for issue in parsed_issues if 'Refinement' in issue['summary']]
+refinement_work = sum([issue['logged'] for issue in refinement_issues])
+print('Refinements work: {}'.format(refinement_work))
+issues_without_refinements = [issue for issue in parsed_issues if 'Refinement' not in issue['summary']]
+total_work = sum([issue['logged'] for issue in issues_without_refinements])
 print('Total hours logged: {}'.format(total_work))
 
-minor_work = sum([issue['logged'] for issue in parsed_issues if not issue['owner']])
+minor_work = sum([issue['logged'] for issue in issues_without_refinements if not issue['owner']])
 print('Minor work: {}'.format(minor_work))
 
-owned_issues = [issue for issue in parsed_issues if issue['owner'] and not issue['other_sprint']]
+owned_issues = [issue for issue in issues_without_refinements if issue['owner'] and not issue['other_sprint']]
+other_sprint = [issue for issue in issues_without_refinements if issue['owner'] and issue['other_sprint']]
 
 total_logged = sum([issue['logged'] for issue in owned_issues])
 total_estimation = sum([issue['estimation'] for issue in owned_issues])
 total_burnout = total_logged - total_estimation
 total_burnout_percent = total_burnout / total_estimation * 100
+
+print('Other sprint')
+for issue in other_sprint:
+  burnout = issue['logged'] - issue['estimation'] if issue['estimation'] > 0 else 0
+  burnout_percent = burnout / issue['estimation'] * 100 if issue['estimation'] > 0 else 0
+
+  print('{} {} estimated {} logged {} burnout {} = {}%'.format(issue['key'], issue['summary'], int(issue['estimation']), int(issue['logged']), int(burnout), int(burnout_percent)))
+
 
 print('Owned issued')
 
