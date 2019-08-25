@@ -72,7 +72,8 @@ def parse_issue(issue):
   groupped = groupby(wl, keyfunc)
   people_time = {person: sum_times(list(logs)) for person, logs in groupped}
   own_time = people_time[name]
-  return { 'key' : issue['key'], 'summary': summary, 'estimation': estimations, 'logged': own_time['total'], 'owner': is_owner(people_time), 'other_sprint': own_time['other_sprint'] }
+  status = fields['status']['name']
+  return { 'key' : issue['key'], 'summary': summary, 'estimation': estimations, 'logged': own_time['total'], 'owner': is_owner(people_time), 'other_sprint': own_time['other_sprint'], 'status': status }
 
 print('Report {} {} - {}'.format(name, start_date, end_date))
 
@@ -84,6 +85,7 @@ refinement_issues = [issue for issue in parsed_issues if 'Refinement' in issue['
 refinement_work = sum([issue['logged'] for issue in refinement_issues])
 print('Refinements work: {}'.format(refinement_work))
 issues_without_refinements = [issue for issue in parsed_issues if 'Refinement' not in issue['summary']]
+issues_without_refinements = [issue for issue in issues_without_refinements if 'Angular training' not in issue['summary']]
 total_work = sum([issue['logged'] for issue in issues_without_refinements])
 print('Total hours logged: {}'.format(total_work))
 
@@ -112,6 +114,6 @@ for issue in owned_issues:
   burnout = issue['logged'] - issue['estimation'] if issue['estimation'] > 0 else 0
   burnout_percent = burnout / issue['estimation'] * 100 if issue['estimation'] > 0 else 0
 
-  print('{} {} estimated {} logged {} burnout {} = {}%'.format(issue['key'], issue['summary'], int(issue['estimation']), int(issue['logged']), int(burnout), int(burnout_percent)))
+  print('{} {} {} estimated {} logged {} burnout {} = {}%'.format(issue['key'], issue['status'], issue['summary'], int(issue['estimation']), int(issue['logged']), int(burnout), int(burnout_percent)))
 
 print('Total: estimated {} logged {} burnout {} = {}%'.format(int(total_estimation), int(total_logged), int(total_burnout), int(total_burnout_percent)))
